@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>生咖 · 生日咖啡店数调平台</title>
+    <link rel="stylesheet" href="css/style.css?v=final7">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header id="nav-header" class="nav-header">
+        <div class="nav-inner">
+            <a href="#/" class="logo" data-route>
+                <span class="logo-mark">
+                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 杯身 -->
+                        <path d="M13 27h30v11c0 7.2-5.8 13-13 13h-4c-7.2 0-13-5.8-13-13V27z" fill="#FFFFFF" stroke="#7C5233" stroke-width="3" stroke-linejoin="round"/>
+                        <!-- 杯柄 -->
+                        <path d="M43 30c5.5.5 9 3.5 8.5 8-.5 4.5-4.5 7-9 6.5" stroke="#7C5233" stroke-width="3" stroke-linecap="round"/>
+                        <!-- 拉花爱心 -->
+                        <path d="M28 43.5c-3.2-2.4-5.5-4.6-5.5-7 0-1.9 1.5-3.4 3.4-3.4.9 0 1.7.3 2.1 1 .4-.7 1.2-1 2.1-1 1.9 0 3.4 1.5 3.4 3.4 0 2.4-2.3 4.6-5.5 7z" fill="#D98B93"/>
+                        <!-- 蒸汽 -->
+                        <path d="M22 20c-1.8-2.2-1.8-4.5 0-6.7M29 20c-1.8-2.2-1.8-4.5 0-6.7M36 20c-1.8-2.2-1.8-4.5 0-6.7" stroke="#A0714F" stroke-width="2.6" stroke-linecap="round"/>
+                        <!-- 咖啡豆 -->
+                        <ellipse cx="51" cy="51" rx="6" ry="7.5" transform="rotate(25 51 51)" fill="#A0714F"/>
+                        <path d="M48 45.5c3 3.5 4.5 7 4 11.5" stroke="#FAF5EC" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="logo-text">生咖 <em>Birthday Cafe</em></span>
+            </a>
+            <nav class="nav-links" id="nav-links">
+                <a href="#/" class="nav-item" data-route data-nav-home>探索生咖</a>
+                <a href="#/my" class="nav-item" data-route data-nav-my>我的生咖</a>
+            </nav>
+            <div class="nav-auth" id="nav-auth"></div>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="菜单">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+        <div class="mobile-menu" id="mobile-menu"></div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main id="app"></main>
+
+    <!-- Toast 通知 -->
+    <div id="toast-container"></div>
+
+    <!-- Modal 容器 -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div id="modal" class="modal"></div>
+    </div>
+
+    <script src="js/qrcode.js?v=final7"></script>
+    <script src="js/data.js?v=final7"></script>
+    <script src="js/auth.js?v=final7"></script>
+    <script src="js/pages.js?v=final7"></script>
+    <script src="js/app.js?v=final7"></script>
+</body>
+</html>
