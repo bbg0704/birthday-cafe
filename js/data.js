@@ -36,7 +36,7 @@ const DataStore = (() => {
     // --- 初始化示例数据 ---
     const initDemoData = () => {
         // 版本号变化时重置数据（方便开发调试）
-        const INIT_VERSION = 'final2';
+        const INIT_VERSION = 'final9';
         const current = localStorage.getItem('bc_init_version');
         if (current === INIT_VERSION) return;
         localStorage.setItem('bc_init_version', INIT_VERSION);
@@ -48,35 +48,8 @@ const DataStore = (() => {
         localStorage.removeItem(KEYS.MATERIAL_VERIFICATIONS);
         localStorage.removeItem(KEYS.CURRENT_USER);
         
-        // 创建示例用户
-        const organizer = {
-            id: uid(),
-            username: 'organizer',
-            password: '123456',
-            role: 'organizer',
-            nickname: '小粉主办',
-            createdAt: Date.now() - 86400000 * 30
-        };
-        
-        const organizer2 = {
-            id: uid(),
-            username: 'luna',
-            password: '123456',
-            role: 'organizer',
-            nickname: '咖啡师Luna',
-            createdAt: Date.now() - 86400000 * 20
-        };
-        
-        const fan = {
-            id: uid(),
-            username: 'fan',
-            password: '123456',
-            role: 'fan',
-            nickname: '爱喝拿铁的阿米',
-            createdAt: Date.now() - 86400000 * 10
-        };
-
-        set(KEYS.USERS, [organizer, organizer2, fan]);
+        // 不预置任何演示账号，用户需自行注册
+        set(KEYS.USERS, []);
 
         set(KEYS.EVENTS, []);
         set(KEYS.REGISTRATIONS, []);
