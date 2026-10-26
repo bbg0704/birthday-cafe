@@ -416,7 +416,7 @@ const buildShareUrl = (eventId) => {
 const makeQR = (text, size = 220) => {
     try {
         if (typeof qrcode === 'function') {
-            const qr = qrcode(0, 'M');
+            const qr = qrcode(0, 'L');
             qr.addData(text);
             qr.make();
             return qr.createDataURL(4, 8);
