@@ -361,8 +361,14 @@ const Pages = (() => {
     };
 
     /* -------- 生咖详情页 -------- */
+    const sharedSnapshot = (id) => {
+        const token = (Router.query && Router.query.d) || '';
+        if (!token || !window.Snapshot) return null;
+        return Snapshot.decode(id, token);
+    };
+
     const eventDetail = (id) => {
-        const event = DataStore.getEventById(id);
+        const event = DataStore.getEventById(id) || sharedSnapshot(id);
         if (!event) {
             document.getElementById('app').innerHTML = `
                 <div class="empty-state">
@@ -379,7 +385,7 @@ const Pages = (() => {
         const isOrganizerView = Auth.current() && Auth.current().id === event.organizerId;
         const regCount = DataStore.getRegistrationsByEvent(id).length;
         const cover = coverParts(event);
-        const relatedEvents = event.seriesId
+        const relatedEvents = (!event.__shared && event.seriesId)
             ? DataStore.getEvents().filter(e => e.seriesId === event.seriesId && e.id !== event.id)
             : [];
 
@@ -394,6 +400,7 @@ const Pages = (() => {
                 <div class="detail-cover"${cover.style}>${cover.inner}</div>
                 <div class="detail-info">
                     <h1 class="detail-title">${Utils.escapeHtml(event.theme)}</h1>
+                    ${event.__shared ? '<div class="share-banner">该页面由分享链接打开，展示的是活动信息快照，报名数据不会同步给主办。</div>' : ''}
                     <div class="detail-badges">
                         <span class="badge ${attr.className}">${attr.label}</span>
                         <span class="badge ${type.className}">${type.label}</span>
@@ -420,14 +427,14 @@ const Pages = (() => {
                         </div>
                     </div>
                     <div class="detail-actions">
-                        ${!cd.expired && Auth.isFan() && !myReg 
+                        ${event.__shared ? '' : (!cd.expired && Auth.isFan() && !myReg 
                             ? `<button class="btn btn-primary" onclick="location.hash='#/register-event/${id}'">立即报名</button>`
                             : !cd.expired && Auth.isFan() && myReg
                             ? `<button class="btn btn-outline" onclick="location.hash='#/register-event/${id}'">修改报名</button>`
                             : !Auth.isLoggedIn() && !cd.expired
                             ? `<button class="btn btn-primary" onclick="location.hash='#/login'">登录后报名</button>`
                             : ''
-                        }
+                        )}
                         ${isOrganizerView
                             ? `<button class="btn btn-secondary" onclick="location.hash='#/manage/${id}'">管理数调</button>
                                <button class="btn btn-outline" onclick="shareEvent('${id}')">分享数调</button>
@@ -457,7 +464,7 @@ const Pages = (() => {
                 <button class="tab-btn active" data-tab="info">活动信息</button>
                 <button class="tab-btn" data-tab="packages">套餐详情</button>
                 <button class="tab-btn" data-tab="materials">物料门槛</button>
-                ${Auth.isLoggedIn() ? `<button class="tab-btn" data-tab="verify">我的审核</button>` : ''}
+                ${Auth.isLoggedIn() && !event.__shared ? `<button class="tab-btn" data-tab="verify">我的审核</button>` : ''}
             </div>
 
             <div id="tab-content">
@@ -519,7 +526,7 @@ const Pages = (() => {
                     }
                 </div>
 
-                ${Auth.isLoggedIn() ? `
+                ${Auth.isLoggedIn() && !event.__shared ? `
                 <div class="tab-panel hidden" data-panel="verify">
                     ${renderVerifyPanel(id, event)}
                 </div>
