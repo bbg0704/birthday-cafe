@@ -1734,8 +1734,8 @@ img {
 }
 
 .share-qr img {
-    width: 200px;
-    height: 200px;
+    width: 264px;
+    height: 264px;
     display: block;
 }
 
@@ -1757,7 +1757,7 @@ img {
 }
 
 @media (max-width: 768px) {
-    .share-qr img { width: 168px; height: 168px; }
+    .share-qr img { width: 224px; height: 224px; }
     .cover-tab { font-size: 12px; padding: 7px 8px; }
     .material-images img { width: 72px; height: 72px; }
 }
