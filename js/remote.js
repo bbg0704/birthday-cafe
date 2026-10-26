@@ -5,7 +5,9 @@
 
 const Remote = (() => {
     const cfg = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG) ? SUPABASE_CONFIG : {};
-    const url = String(cfg.url || '').replace(/\/+$/, '');
+    const url = String(cfg.url || '').trim()
+        .replace(/\/+$/, '')
+        .replace(/\/rest\/v1$/, '');
     const key = String(cfg.anonKey || '');
     const enabled = !!(url && key);
 
