@@ -3,6 +3,15 @@
    Ins / 韩系 风格
    ============================================ */
 
+/* --- 自定义展示字体 --- */
+@font-face {
+    font-family: 'Black Sugar Plum Candy';
+    src: url('fonts/BlackSugarPlumCandy-Bold.woff2') format('woff2');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* --- 设计令牌 Design Tokens --- */
 :root {
     /* 咖啡奶油色系（纯咖啡调，不含粉/紫/绿） */
@@ -59,7 +68,7 @@
     /* 字体 */
     --font-sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-display: 'Playfair Display', 'Noto Sans SC', serif;
-    --font-cute: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
+    --font-cute: 'Black Sugar Plum Candy', 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
     
     /* 过渡 */
     --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -447,8 +456,10 @@ img {
 
 /* --- 生咖卡片网格 --- */
 .section-title {
+    font-family: var(--font-cute);
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 400;
+    letter-spacing: 0.5px;
     margin-bottom: var(--space-5);
     display: flex;
     align-items: center;
@@ -1056,8 +1067,10 @@ img {
 }
 
 .modal-title {
+    font-family: var(--font-cute);
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 400;
+    letter-spacing: 0.5px;
     margin-bottom: var(--space-4);
 }
 
@@ -1440,8 +1453,10 @@ img {
 
 /* --- 区段标题 --- */
 .section-block-title {
+    font-family: var(--font-cute);
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 400;
+    letter-spacing: 0.5px;
     color: var(--color-brown);
     margin: var(--space-6) 0 var(--space-3);
     display: flex;
