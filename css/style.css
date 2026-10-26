@@ -450,6 +450,17 @@ img {
     color: var(--color-ink);
 }
 
+.search-bar .search-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+}
+
+.role-card .role-icon svg {
+    display: inline-block;
+}
+
 .search-bar input::placeholder {
     color: var(--color-ink-lighter);
 }
