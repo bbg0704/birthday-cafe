@@ -419,7 +419,7 @@ const Pages = (() => {
         const isOrganizerView = Auth.current() && Auth.current().id === event.organizerId;
         const regCount = event.__shared ? 0 : Math.max(DataStore.getRegistrationsByEvent(id).length, event.__remoteCount || 0);
         const cover = coverParts(event);
-        const relatedEvents = (!event.__shared && event.seriesId)
+        const relatedEvents = (!event.__shared && !event.__fromShare && event.seriesId)
             ? DataStore.getEvents().filter(e => e.seriesId === event.seriesId && e.id !== event.id)
             : [];
 
