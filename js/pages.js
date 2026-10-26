@@ -11,6 +11,27 @@ const Pages = (() => {
     const escAttr = (s) => Utils.escapeHtml(String(s === null || s === undefined ? '' : s))
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+    /* -------- 线性图标（替代 emoji） -------- */
+    const ICON_ORGANIZER = `<svg width="40" height="40" viewBox="0 0 48 48" fill="none" stroke="#7C5233" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 20h23v6.5C32 34 26.9 40 20.5 40S9 34 9 26.5V20z"/>
+        <path d="M32 23.5c4 0 6.5 2.2 6.5 5.2S36 34 32 34"/>
+        <path d="M15 15c-1.3-1.7-1.3-3.3 0-5M21 15c-1.3-1.7-1.3-3.3 0-5M27 15c-1.3-1.7-1.3-3.3 0-5"/>
+        <path d="M9 44h24"/>
+    </svg>`;
+    const ICON_FAN = `<svg width="40" height="40" viewBox="0 0 48 48" fill="none" stroke="#7C5233" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M24 39S9 30.2 9 20.6A7.8 7.8 0 0 1 24 16.2 7.8 7.8 0 0 1 39 20.6C39 30.2 24 39 24 39z"/>
+    </svg>`;
+    const ICON_SEARCH = `<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#A0714F" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <circle cx="9" cy="9" r="5.5"/><path d="M13.3 13.3L17 17"/>
+    </svg>`;
+    const ICON_UPLOAD = `<svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#A0714F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M16 22V7"/><path d="M10 13l6-6 6 6"/><path d="M6 24v1.5A2.5 2.5 0 0 0 8.5 28h15a2.5 2.5 0 0 0 2.5-2.5V24"/>
+    </svg>`;
+    const ICON_IMAGE = `<svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#A0714F" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
+        <rect x="5" y="7" width="22" height="18" rx="2.5"/><circle cx="11" cy="13" r="2"/>
+        <path d="M6 22l6.5-6 4 4 3-2.5L27 22"/>
+    </svg>`;
+
     const COVER_DECO_SVG = `
         <svg class="cover-gen-deco" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 26h28v12c0 7.7-6.2 14-14 14h-1c-7.7 0-14-6.3-14-14V26z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
@@ -42,7 +63,7 @@ const Pages = (() => {
         if (e.coverGenerated && e.coverGenerated.title) {
             return { style: ` style="background:${e.coverGenerated.bgColor};"`, inner: coverGenInner(e.coverGenerated) };
         }
-        return { style: '', inner: `<span>${e.coverEmoji || '☕'}</span>` };
+        return { style: '', inner: coverFallback('') };
     };
 
     /* -------- 首页：生咖列表 -------- */
@@ -97,7 +118,7 @@ const Pages = (() => {
                     </div>
                 </div>
                 <div class="search-bar">
-                    <span>🔍</span>
+                    <span class="search-icon">${ICON_SEARCH}</span>
                     <input type="text" id="search-input" placeholder="搜索生咖主题或城市...">
                 </div>
             </section>
@@ -207,9 +228,9 @@ const Pages = (() => {
                     <div class="cafe-card-body">
                         <div class="cafe-card-title">${Utils.escapeHtml(e.theme)}</div>
                         <div class="cafe-card-meta">
-                            <span>📍 ${Utils.escapeHtml(e.city)}</span>
-                            <span>📅 ${Utils.formatDate(e.startTime)} ~ ${Utils.formatDate(e.endTime)}</span>
-                            <span>📌 ${Utils.escapeHtml(e.location)}</span>
+                            <span>${Utils.escapeHtml(e.city)}</span>
+                            <span>${Utils.formatDate(e.startTime)} ~ ${Utils.formatDate(e.endTime)}</span>
+                            <span>${Utils.escapeHtml(e.location)}</span>
                         </div>
                         <div class="cafe-card-footer">
                             <span>${e.registrationsCount || 0} 人已报名</span>
@@ -227,7 +248,7 @@ const Pages = (() => {
         app.innerHTML = `
             <div class="form-container">
                 <div class="form-card">
-                    <div class="form-card-title">欢迎回来 ☕</div>
+                    <div class="form-card-title">欢迎回来</div>
                     <div class="form-card-subtitle">登录你的账号，继续参与热爱</div>
                     
                     <div class="form-group">
@@ -241,9 +262,6 @@ const Pages = (() => {
                     <button class="btn btn-primary btn-block" onclick="handleLogin()">登 录</button>
                     <div style="text-align:center; margin-top: var(--space-4); font-size: 14px; color: var(--color-ink-soft);">
                         还没有账号？ <a href="#/register" style="color: var(--color-accent); font-weight: 500;">立即注册</a>
-                    </div>
-                    <div style="text-align:center; margin-top: var(--space-3); font-size: 12px; color: var(--color-ink-lighter);">
-                        演示账号： organizer / fan · 密码： 123456
                     </div>
                 </div>
             </div>
@@ -271,19 +289,19 @@ const Pages = (() => {
         app.innerHTML = `
             <div class="form-container">
                 <div class="form-card">
-                    <div class="form-card-title">创建你的账号 ✨</div>
+                    <div class="form-card-title">创建你的账号</div>
                     <div class="form-card-subtitle">选择身份，开启你的生咖之旅</div>
                     
                     <div class="form-group">
                         <label class="form-label">选择身份</label>
                         <div class="role-select">
                             <div class="role-card active" data-role="organizer" onclick="selectRole('organizer')">
-                                <div class="role-icon">🎪</div>
+                                <div class="role-icon">${ICON_ORGANIZER}</div>
                                 <div class="role-name">生咖主办</div>
                                 <div class="role-desc">创建活动、管理数调、审核物料</div>
                             </div>
                             <div class="role-card" data-role="fan" onclick="selectRole('fan')">
-                                <div class="role-icon">💖</div>
+                                <div class="role-icon">${ICON_FAN}</div>
                                 <div class="role-name">普通粉丝</div>
                                 <div class="role-desc">报名活动、领取物料、上传审核</div>
                             </div>
@@ -335,7 +353,7 @@ const Pages = (() => {
         if (result.success) {
             // 自动登录
             DataStore.loginUser(username, password);
-            Utils.toast('注册成功 🎉', 'success');
+            Utils.toast('注册成功', 'success');
             setTimeout(() => { location.hash = '#/'; }, 800);
         } else {
             Utils.toast(result.message, 'error');
@@ -348,7 +366,6 @@ const Pages = (() => {
         if (!event) {
             document.getElementById('app').innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon">😿</div>
                     <p>找不到这个生咖活动</p>
                     <button class="btn btn-primary" onclick="location.hash='#/'">返回首页</button>
                 </div>
@@ -386,19 +403,19 @@ const Pages = (() => {
                     </div>
                     <div class="detail-meta">
                         <div class="detail-meta-item">
-                            <span class="detail-meta-label">📍 地点</span>
+                            <span class="detail-meta-label">地点</span>
                             <span class="detail-meta-value">${Utils.escapeHtml(event.location)}</span>
                         </div>
                         <div class="detail-meta-item">
-                            <span class="detail-meta-label">🗓 时间</span>
+                            <span class="detail-meta-label">时间</span>
                             <span class="detail-meta-value">${Utils.formatDate(event.startTime)} ~ ${Utils.formatDate(event.endTime)}</span>
                         </div>
                         <div class="detail-meta-item">
-                            <span class="detail-meta-label">⏰ 截止</span>
+                            <span class="detail-meta-label">截止</span>
                             <span class="detail-meta-value countdown">${cd.text}</span>
                         </div>
                         <div class="detail-meta-item">
-                            <span class="detail-meta-label">👥 报名</span>
+                            <span class="detail-meta-label">报名</span>
                             <span class="detail-meta-value">${regCount} 人</span>
                         </div>
                     </div>
@@ -424,11 +441,11 @@ const Pages = (() => {
 
             ${relatedEvents.length > 0 ? `
             <div class="series-block">
-                <div class="series-title">☕ 同一主题 · 其他城市场次</div>
+                <div class="series-title">同一主题 · 其他城市场次</div>
                 <div class="series-list">
                     ${relatedEvents.map(r => `
                         <a class="series-item" href="#/event/${r.id}">
-                            📍 ${Utils.escapeHtml(r.city)} · ${Utils.formatDate(r.startTime)}
+                            ${Utils.escapeHtml(r.city)} · ${Utils.formatDate(r.startTime)}
                             <span style="color:var(--color-ink-lighter);">${Utils.escapeHtml(r.location)}</span>
                         </a>
                     `).join('')}
@@ -449,7 +466,7 @@ const Pages = (() => {
                     <div class="section-block-title">主要活动内容</div>
                     <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 24px;">
                         ${event.mainActivities && event.mainActivities.length > 0 
-                            ? event.mainActivities.map(a => `<span class="material-tag">📌 ${Utils.escapeHtml(a)}</span>`).join('')
+                            ? event.mainActivities.map(a => `<span class="material-tag">${Utils.escapeHtml(a)}</span>`).join('')
                             : '<span style="color: var(--color-ink-lighter);">暂无活动详情</span>'
                         }
                     </div>
@@ -490,9 +507,9 @@ const Pages = (() => {
                                         </div>
                                         ${t.needVerify ? '<span class="review-status pending">需线上审核</span>' : '<span class="review-status approved">自动发放</span>'}
                                     </div>
-                                    ${t.requirement ? `<div class="tier-requirement">📝 领取条件：${Utils.escapeHtml(t.requirement)}</div>` : ''}
+                                    ${t.requirement ? `<div class="tier-requirement">领取条件：${Utils.escapeHtml(t.requirement)}</div>` : ''}
                                     ${hasImages ? `<div class="material-images">${t.images.map(src => `<img src="${src}" alt="物料图片">`).join('')}</div>` : ''}
-                                    ${hasMaterials ? `<div class="tier-materials">${t.materials.map(m => `<span class="material-tag">🎁 ${Utils.escapeHtml(m)}</span>`).join('')}</div>` : ''}
+                                    ${hasMaterials ? `<div class="tier-materials">${t.materials.map(m => `<span class="material-tag">${Utils.escapeHtml(m)}</span>`).join('')}</div>` : ''}
                                     ${!t.requirement && !hasMaterials && !hasImages
                                         ? '<div class="detail-placeholder">物料信息待主办补充</div>' : ''}
                                 </div>
@@ -526,7 +543,6 @@ const Pages = (() => {
             const myReg = DataStore.getUserRegistrations(Auth.current().id).find(r => r.eventId === eventId);
             if (!myReg) {
                 return `<div class="empty-state" style="padding:32px;">
-                    <div class="empty-icon">📝</div>
                     <p>请先报名活动后再上传物料审核</p>
                 </div>`;
             }
@@ -536,7 +552,7 @@ const Pages = (() => {
             const tiersNeedVerify = (event.tieredMaterials || []).filter(t => t.needVerify);
             if (tiersNeedVerify.length === 0) {
                 return `<div style="text-align:center; padding:40px; color: var(--color-ink-lighter);">
-                    本活动的物料均可自动领取，无需线上审核 ✨
+                    本活动的物料均可自动领取，无需线上审核
                 </div>`;
             }
 
@@ -556,12 +572,12 @@ const Pages = (() => {
                                 </div>
                                 ${existingV 
                                     ? `<span class="review-status ${existingV.status}">
-                                        ${existingV.status === 'pending' ? '⏳ 审核中' : existingV.status === 'approved' ? '✅ 已通过' : '❌ 未通过'}
+                                        ${existingV.status === 'pending' ? '审核中' : existingV.status === 'approved' ? '已通过' : '未通过'}
                                        </span>`
                                     : '<span class="review-status pending">未提交</span>'
                                 }
                             </div>
-                            ${t.requirement ? `<div class="tier-requirement">📝 领取条件：${Utils.escapeHtml(t.requirement)}</div>` : ''}
+                            ${t.requirement ? `<div class="tier-requirement">领取条件：${Utils.escapeHtml(t.requirement)}</div>` : ''}
                             ${t.images && t.images.length > 0 ? `
                                 <div class="material-images">
                                     ${t.images.map(src => `<img src="${src}" alt="物料图片">`).join('')}
@@ -569,12 +585,12 @@ const Pages = (() => {
                             ` : ''}
                             ${t.materials && t.materials.length > 0 ? `
                                 <div class="tier-materials">
-                                    ${t.materials.map(m => `<span class="material-tag">🎁 ${Utils.escapeHtml(m)}</span>`).join('')}
+                                    ${t.materials.map(m => `<span class="material-tag">${Utils.escapeHtml(m)}</span>`).join('')}
                                 </div>
                             ` : ''}
                             <div class="section-block-title">上传凭证（图片/视频）</div>
                             <div class="upload-area" onclick="document.getElementById('upload-${t.id}').click()">
-                                <div class="upload-icon">📤</div>
+                                <div class="upload-icon">${ICON_UPLOAD}</div>
                                 <div class="upload-text">点击上传图片或视频（最多 5 个）</div>
                                 <input type="file" id="upload-${t.id}" multiple accept="image/*,video/*" 
                                     style="display:none" 
@@ -614,7 +630,6 @@ const Pages = (() => {
         if (!Auth.isOrganizer()) {
             document.getElementById('app').innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon">🔒</div>
                     <p>只有生咖主办可以创建活动哦</p>
                     <button class="btn btn-primary" onclick="location.hash='#/'">返回首页</button>
                 </div>
@@ -746,7 +761,7 @@ const Pages = (() => {
 
         document.getElementById('app').innerHTML = `
             <div class="form-container" style="max-width: 720px;">
-                <div class="section-title" style="margin-bottom: 24px;">${isEdit ? '编辑生咖' : '创建生咖'} ☕</div>
+                <div class="section-title" style="margin-bottom: 24px;">${isEdit ? '编辑生咖' : '创建生咖'}</div>
                 <div class="form-card">
                     <div class="form-group">
                         <label class="form-label">主题名 <span class="required">*</span></label>
@@ -803,7 +818,7 @@ const Pages = (() => {
 
                         <div id="cover-panel-upload" class="cover-panel hidden">
                             <div class="upload-area" onclick="document.getElementById('e-cover-file').click()">
-                                <div class="upload-icon">🖼️</div>
+                                <div class="upload-icon">${ICON_IMAGE}</div>
                                 <div class="upload-text">点击上传封面图片（建议横图，≤5MB，自动压缩）</div>
                                 <input type="file" id="e-cover-file" accept="image/*" style="display:none" onchange="handleCoverUpload(event)">
                             </div>
@@ -814,10 +829,6 @@ const Pages = (() => {
                             <div class="upload-area" style="cursor:default;">
                                 <div class="upload-icon">${coverFallback('')}</div>
                                 <div class="upload-text">使用默认咖啡插画</div>
-                            </div>
-                            <div class="form-group" style="margin-top: var(--space-3); margin-bottom: 0;">
-                                <label class="form-label">点缀 Emoji（可选）</label>
-                                <input type="text" class="form-input" id="e-cover" value="${escAttr(isEdit && event.coverEmoji ? event.coverEmoji : '')}" placeholder="例如：🌸" maxlength="4">
                             </div>
                         </div>
                     </div>
@@ -1026,8 +1037,6 @@ const Pages = (() => {
                 bgColor: window._coverGenerated.bgColor,
                 textColor: window._coverGenerated.textColor
             };
-        } else {
-            coverEmoji = document.getElementById('e-cover').value.trim();
         }
 
         // 同主题系列关联
@@ -1054,12 +1063,12 @@ const Pages = (() => {
         try {
             if (window._editingId) {
                 const updated = DataStore.updateEvent(window._editingId, payload);
-                Utils.toast('生咖信息已更新 ✨', 'success');
+                Utils.toast('生咖信息已更新', 'success');
                 location.hash = `#/event/${updated.id}`;
             } else {
                 const user = Auth.current();
                 const newEvent = DataStore.createEvent({ ...payload, organizerId: user.id });
-                Utils.toast('生咖创建成功 🎉', 'success');
+                Utils.toast('生咖创建成功', 'success');
                 location.hash = `#/event/${newEvent.id}`;
             }
         } catch (err) {
@@ -1087,11 +1096,11 @@ const Pages = (() => {
 
         document.getElementById('app').innerHTML = `
             <div class="form-container">
-                <div class="section-title" style="margin-bottom: 24px;">${myReg ? '修改报名' : '报名参加'} 📝</div>
+                <div class="section-title" style="margin-bottom: 24px;">${myReg ? '修改报名' : '报名参加'}</div>
                 <div class="form-card">
                     <div style="margin-bottom: 20px;">
                         <div style="font-weight: 600; font-size: 18px; margin-bottom: 4px;">${Utils.escapeHtml(event.theme)}</div>
-                        <div style="font-size: 13px; color: var(--color-ink-soft);">📍 ${event.location} · ${Utils.formatDate(event.startTime)}</div>
+                        <div style="font-size: 13px; color: var(--color-ink-soft);">${event.location} · ${Utils.formatDate(event.startTime)}</div>
                     </div>
 
                     <div class="form-group">
@@ -1219,7 +1228,7 @@ const Pages = (() => {
             DataStore.updateRegistration(myReg.id, {
                 fanId, packageId, packageName: pkg.name, packagePrice: pkg.price, quantity, total
             });
-            Utils.toast('报名已更新 ✨', 'success');
+            Utils.toast('报名已更新', 'success');
         } else {
             DataStore.createRegistration({
                 userId: user.id,
@@ -1231,7 +1240,7 @@ const Pages = (() => {
                 quantity,
                 total
             });
-            Utils.toast('报名成功 🎉', 'success');
+            Utils.toast('报名成功', 'success');
         }
 
         setTimeout(() => { location.hash = `#/event/${eventId}`; }, 600);
@@ -1325,7 +1334,7 @@ const Pages = (() => {
 
     const renderRegistrationList = (registrations, event) => {
         if (registrations.length === 0) {
-            return `<div class="empty-state"><div class="empty-icon">📭</div><p>还没有报名记录</p></div>`;
+            return `<div class="empty-state"><p>还没有报名记录</p></div>`;
         }
         // 按套餐分组统计
         const pkgStats = {};
@@ -1375,7 +1384,7 @@ const Pages = (() => {
 
     const renderVerificationList = (verifications, event) => {
         if (verifications.length === 0) {
-            return `<div class="empty-state"><div class="empty-icon">📭</div><p>暂无物料审核提交</p></div>`;
+            return `<div class="empty-state"><p>暂无物料审核提交</p></div>`;
         }
         const pending = verifications.filter(v => v.status === 'pending').length;
         return `
@@ -1396,13 +1405,13 @@ const Pages = (() => {
                                 ${tier ? `<span class="tier-level ${tierInfo.className}">${tierInfo.label}</span>` : ''}
                             </div>
                             <span class="review-status ${v.status}">
-                                ${v.status === 'pending' ? '⏳ 待审核' : v.status === 'approved' ? '✅ 已通过' : '❌ 未通过'}
+                                ${v.status === 'pending' ? '待审核' : v.status === 'approved' ? '已通过' : '未通过'}
                             </span>
                         </div>
                         <div style="font-size:12px; color: var(--color-ink-lighter); margin-bottom: 8px;">
                             提交时间：${Utils.formatDate(v.createdAt, true)}
                         </div>
-                        ${tier ? `<div class="tier-requirement">📝 要求：${Utils.escapeHtml(tier.requirement)}</div>` : ''}
+                        ${tier ? `<div class="tier-requirement">要求：${Utils.escapeHtml(tier.requirement)}</div>` : ''}
                         ${v.assets && v.assets.length > 0 ? `
                             <div class="upload-preview">
                                 ${v.assets.map(a => renderUploadItem(a)).join('')}
@@ -1410,9 +1419,9 @@ const Pages = (() => {
                         ` : '<div style="color: var(--color-ink-lighter); font-size:13px;">未上传凭证</div>'}
                         ${v.status === 'pending' ? `
                             <div style="margin-top: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                                <button class="btn btn-primary btn-sm" onclick="reviewVerification('${v.id}', 'approved', '')">✅ 通过</button>
+                                <button class="btn btn-primary btn-sm" onclick="reviewVerification('${v.id}', 'approved', '')">通过</button>
                                 <button class="btn btn-outline btn-sm" style="color:#A85A46; border-color:#C08A76;" 
-                                    onclick="reviewVerification('${v.id}', 'rejected', prompt('请输入拒绝理由：') || '')">❌ 拒绝</button>
+                                    onclick="reviewVerification('${v.id}', 'rejected', prompt('请输入拒绝理由：') || '')">拒绝</button>
                             </div>
                         ` : v.reviewNote ? `<div style="margin-top: 12px; font-size:13px; color: var(--color-ink-soft); padding:12px; background: var(--color-cream); border-radius: 8px;">反馈：${Utils.escapeHtml(v.reviewNote)}</div>` : ''}
                     </div>
@@ -1428,7 +1437,7 @@ const Pages = (() => {
         const user = Auth.current();
         document.getElementById('app').innerHTML = `
             <div style="display:flex; align-items:center; gap:16px; margin-bottom: 32px; padding: 24px; background: linear-gradient(135deg, var(--color-accent-soft), var(--color-cream)); border-radius: var(--radius-lg);">
-                <div style="font-size: 48px;">${user.role === 'organizer' ? '🎪' : '💖'}</div>
+                <div style="width: 48px; height: 48px; flex: none;">${user.role === 'organizer' ? ICON_ORGANIZER : ICON_FAN}</div>
                 <div>
                     <div style="font-weight: 600; font-size: 18px;">${Utils.escapeHtml(user.nickname)}</div>
                     <div style="font-size: 13px; color: var(--color-ink-soft);">
@@ -1476,7 +1485,7 @@ const Pages = (() => {
                     <div class="my-reg-info">
                         <div class="my-reg-title">${Utils.escapeHtml(e.theme)}</div>
                         <div class="my-reg-meta">
-                            📅 ${Utils.formatDate(e.startTime)} · 👥 ${regs.length}人 · ¥${revenue} · 
+                            ${Utils.formatDate(e.startTime)} · ${regs.length} 人 · ¥${revenue} · 
                             <span class="${cd.expired ? '' : 'countdown'}">${cd.text}</span>
                         </div>
                     </div>
@@ -1491,7 +1500,6 @@ const Pages = (() => {
         const regs = DataStore.getUserRegistrations(userId);
         if (regs.length === 0) {
             return `<div class="empty-state">
-                <div class="empty-icon">💫</div>
                 <p>还没有报名任何生咖活动</p>
                 <button class="btn btn-primary" onclick="location.hash='#/'">去探索</button>
             </div>`;
@@ -1507,7 +1515,7 @@ const Pages = (() => {
                     <div class="my-reg-info">
                         <div class="my-reg-title">${Utils.escapeHtml(event.theme)}</div>
                         <div class="my-reg-meta">
-                            📦 ${Utils.escapeHtml(r.packageName)} × ${r.quantity} · ¥${r.total} · 
+                            ${Utils.escapeHtml(r.packageName)} × ${r.quantity} · ¥${r.total} · 
                             <span class="${cd.expired ? '' : 'countdown'}">${cd.text}</span>
                         </div>
                     </div>
