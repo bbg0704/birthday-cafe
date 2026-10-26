@@ -71,7 +71,6 @@ const renderAuthNav = () => {
         auth.innerHTML = `
             <span style="font-size:13px; color: var(--color-ink-soft);">
                 ${user.nickname}
-                ${user.role === 'organizer' ? ' 🎪' : ' 💖'}
             </span>
             <button class="btn btn-ghost btn-sm" onclick="handleLogout()">退出</button>
         `;
@@ -90,7 +89,7 @@ const renderAuthNav = () => {
             <a href="#/my" class="nav-item" data-route>我的生咖</a>
             <div style="border-top: 1px solid var(--color-cream-dark); padding-top: 12px; margin-top: 8px;">
                 ${user ? `
-                    <div style="font-size:14px; margin-bottom:8px;">👋 ${user.nickname}</div>
+                    <div style="font-size:14px; margin-bottom:8px;">${user.nickname}</div>
                     <button class="btn btn-secondary btn-sm btn-block" onclick="handleLogout()">退出登录</button>
                 ` : `
                     <button class="btn btn-primary btn-sm btn-block" onclick="location.hash='#/login'">登录 / 注册</button>
@@ -143,7 +142,7 @@ window.handleLogout = () => {
 /* -------- 审核状态更新 -------- */
 window.reviewVerification = (vid, status, note) => {
     DataStore.updateVerificationStatus(vid, status, note);
-    Utils.toast(status === 'approved' ? '已通过审核 ✅' : '已拒绝 ❌', 'success');
+    Utils.toast(status === 'approved' ? '已通过审核' : '已拒绝', 'success');
     // 重新加载管理页
     const path = location.hash.replace('#/manage/', '');
     Pages.manageEvent(path);
@@ -368,7 +367,7 @@ window.copyShareLink = () => {
     const input = document.getElementById('share-link-input');
     if (!input) return;
     const text = input.value;
-    const done = () => Utils.toast('链接已复制，快去分享吧 ✨', 'success');
+    const done = () => Utils.toast('链接已复制，快去分享吧', 'success');
     const fallback = () => {
         input.removeAttribute('readonly');
         input.select();
@@ -478,7 +477,7 @@ window.submitVerification = (tierId, eventId) => {
     if (verification.status !== 'pending') {
         DataStore.updateVerificationStatus(verification.id, 'pending', '');
     }
-    Utils.toast('已提交审核，等待主办审核 📝', 'success');
+    Utils.toast('已提交审核，等待主办审核', 'success');
     // 刷新
     setTimeout(() => {
         document.querySelector('.tab-btn[data-tab="verify"]')?.click();
@@ -537,7 +536,7 @@ const exportTxt = (registrations, event, fileName) => {
     });
 
     downloadFile(content, `${fileName}.txt`, 'text/plain;charset=utf-8');
-    Utils.toast('TXT 文件已下载 📄', 'success');
+    Utils.toast('TXT 文件已下载', 'success');
 };
 
 const exportExcel = (registrations, event, fileName) => {
@@ -604,7 +603,7 @@ const exportExcel = (registrations, event, fileName) => {
 </Workbook>`;
 
     downloadFile(xml, `${fileName}.xls`, 'application/vnd.ms-excel;charset=utf-8');
-    Utils.toast('Excel 文件已下载 📊', 'success');
+    Utils.toast('Excel 文件已下载', 'success');
 };
 
 const exportPDF = (registrations, event, fileName) => {
@@ -661,7 +660,7 @@ ${registrations.map((r, i) => `
     const win = window.open('', '_blank');
     win.document.write(printContent);
     win.document.close();
-    Utils.toast('已打开打印预览（Ctrl+P 保存为 PDF）📄', 'success');
+    Utils.toast('已打开打印预览（Ctrl+P 保存为 PDF）', 'success');
 };
 
 const downloadFile = (content, filename, mime) => {
