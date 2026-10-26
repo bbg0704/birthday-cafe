@@ -5,6 +5,7 @@
 /* -------- 路由 -------- */
 const Router = {
     routes: [],
+    query: {},
 
     register(pattern, handler) {
         this.routes.push({ pattern, handler });
@@ -27,7 +28,13 @@ const Router = {
     },
 
     navigate() {
-        const path = this.parse(location.hash);
+        const raw = this.parse(location.hash);
+        const qi = raw.indexOf('?');
+        this.query = {};
+        if (qi >= 0) {
+            new URLSearchParams(raw.slice(qi + 1)).forEach((v, k) => { this.query[k] = v; });
+        }
+        const path = qi >= 0 ? raw.slice(0, qi) : raw;
         const matched = this.match(path);
         if (matched) {
             matched.handler(...matched.params);
@@ -323,8 +330,88 @@ window.removeTierImage = (e, idx) => {
     renderTierImages(item.querySelector('.tier-img-preview'), images);
 };
 
+/* -------- 分享快照：把活动信息编码进链接，换设备也能打开 -------- */
+const base64UrlEncode = (str) => {
+    const bytes = new TextEncoder().encode(str);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
+const base64UrlDecode = (str) => {
+    const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+};
+
+const Snapshot = {
+    encode(event) {
+        const data = {
+            v: 1,
+            t: event.theme,
+            a: event.attribute,
+            ty: event.type,
+            c: event.city,
+            l: event.location,
+            s: event.startTime,
+            e: event.endTime,
+            d: event.deadline,
+            ac: event.mainActivities || [],
+            pk: (event.packages || []).map(p => ({ n: p.name, p: p.price, it: p.items || [] })),
+            tr: (event.tieredMaterials || []).map(t => ({
+                lv: t.level, n: t.name, rq: t.requirement || '', m: t.materials || [], nv: !!t.needVerify
+            })),
+            cg: event.coverGenerated || null,
+            sid: event.seriesId || ''
+        };
+        return base64UrlEncode(JSON.stringify(data));
+    },
+
+    decode(id, token) {
+        try {
+            const data = JSON.parse(base64UrlDecode(token));
+            if (!data || !data.t) return null;
+            return {
+                id,
+                theme: data.t,
+                attribute: data.a,
+                type: data.ty,
+                city: data.c,
+                location: data.l,
+                startTime: data.s,
+                endTime: data.e,
+                deadline: data.d,
+                mainActivities: data.ac || [],
+                packages: (data.pk || []).map((p, i) => ({
+                    id: 'sp' + i, name: p.n, price: p.p, items: p.it || [], image: ''
+                })),
+                tieredMaterials: (data.tr || []).map((t, i) => ({
+                    id: 'st' + i, level: t.lv, name: t.n, requirement: t.rq,
+                    materials: t.m || [], images: [], needVerify: t.nv
+                })),
+                coverGenerated: data.cg,
+                coverImage: '',
+                coverEmoji: '',
+                seriesId: data.sid || '',
+                organizerId: '',
+                registrationsCount: 0,
+                __shared: true
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+};
+window.Snapshot = Snapshot;
+
 /* -------- 分享数调：链接 + 二维码 -------- */
-const buildShareUrl = (eventId) => `${location.href.split('#')[0]}#/event/${eventId}`;
+const buildShareUrl = (eventId) => {
+    const base = location.href.split('#')[0];
+    const event = DataStore.getEventById(eventId);
+    if (!event) return `${base}#/event/${eventId}`;
+    return `${base}#/event/${eventId}?d=${Snapshot.encode(event)}`;
+};
 
 const makeQR = (text, size = 220) => {
     try {
@@ -353,7 +440,7 @@ window.shareEvent = (eventId) => {
         <div style="text-align:center;">
             <div style="font-size:14px; color: var(--color-ink-soft); margin-bottom: var(--space-3);">${Utils.escapeHtml(event.theme)}</div>
             <div class="share-qr"><img src="${qr}" alt="数调二维码"></div>
-            <div class="share-hint">粉丝扫码即可打开数调页面，或复制链接发送给她</div>
+            <div class="share-hint">粉丝扫码或打开链接即可查看这份数调，活动信息已随链接一起发送，换设备也能打开</div>
             <div class="share-link-row">
                 <input type="text" class="form-input" id="share-link-input" readonly value="${Utils.escapeHtml(url)}">
                 <button class="btn btn-primary btn-sm" onclick="copyShareLink()">复制链接</button>
