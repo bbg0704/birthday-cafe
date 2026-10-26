@@ -139,6 +139,7 @@ window.cancelRegistration = (id) => Pages.cancelRegistration(id);
 window.addDynamicItem = (type) => Pages.addDynamicItem(type);
 window.removeDynamicItem = (btn) => Pages.removeDynamicItem(btn);
 window.submitCreateEvent = () => Pages.submitCreateEvent();
+window.refreshCloudRegs = (id) => Pages.manageEvent(id);
 
 window.handleLogout = () => {
     Utils.confirm('确认退出登录吗？', () => {
@@ -440,7 +441,7 @@ window.shareEvent = (eventId) => {
         <div style="text-align:center;">
             <div style="font-size:14px; color: var(--color-ink-soft); margin-bottom: var(--space-3);">${Utils.escapeHtml(event.theme)}</div>
             <div class="share-qr"><img src="${qr}" alt="数调二维码"></div>
-            <div class="share-hint">粉丝扫码或打开链接即可查看这份数调，活动信息已随链接一起发送，换设备也能打开</div>
+            <div class="share-hint">粉丝扫码或打开链接即可查看数调并直接报名，报名数据会实时同步到你的管理页；活动信息随链接一起发送，换设备也能打开</div>
             <div class="share-link-row">
                 <input type="text" class="form-input" id="share-link-input" readonly value="${Utils.escapeHtml(url)}">
                 <button class="btn btn-primary btn-sm" onclick="copyShareLink()">复制链接</button>
@@ -574,7 +575,7 @@ window.submitVerification = (tierId, eventId) => {
 /* -------- 导出功能 -------- */
 window.exportRegistrations = (eventId, format) => {
     const event = DataStore.getEventById(eventId);
-    const registrations = DataStore.getRegistrationsByEvent(eventId);
+    const registrations = Pages.getAllRegs(eventId);
     if (registrations.length === 0) {
         Utils.toast('暂无报名数据可导出', 'warning');
         return;
