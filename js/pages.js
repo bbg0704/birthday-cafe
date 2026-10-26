@@ -367,23 +367,57 @@ const Pages = (() => {
         return Snapshot.decode(id, token);
     };
 
+    const cloudEnabled = () => !!(window.Remote && Remote.enabled);
+
+    /* 解析活动：本地 → 云端 → 链接快照 */
+    const resolveEvent = (id) => {
+        const fallback = () => {
+            const snap = sharedSnapshot(id);
+            return snap ? { event: snap, cloud: false } : null;
+        };
+        if (!cloudEnabled()) return Promise.resolve(fallback());
+
+        const timeout = new Promise(resolve => setTimeout(() => resolve('__timeout'), 6000));
+        const cloud = Remote.readEvent(id)
+            .then(async doc => {
+                if (!doc) return null;
+                let count = 0;
+                try { count = (await Remote.listRegistrations(id)).length; } catch (e) { count = 0; }
+                return { event: { ...doc, id, __fromShare: true, __remoteCount: count }, cloud: true };
+            })
+            .catch(() => null);
+
+        return Promise.race([cloud, timeout]).then(res => {
+            if (res && res !== '__timeout') return res;
+            return fallback();
+        });
+    };
+
     const eventDetail = (id) => {
-        const event = DataStore.getEventById(id) || sharedSnapshot(id);
-        if (!event) {
+        const local = DataStore.getEventById(id);
+        if (local) { renderEventDetail(local, id); return; }
+
+        document.getElementById('app').innerHTML = `
+            <div class="empty-state"><p>正在加载生咖信息…</p></div>`;
+
+        resolveEvent(id).then(res => {
+            if (res) { renderEventDetail(res.event, id); return; }
             document.getElementById('app').innerHTML = `
                 <div class="empty-state">
                     <p>找不到这个生咖活动</p>
                     <button class="btn btn-primary" onclick="location.hash='#/'">返回首页</button>
                 </div>
             `;
-            return;
-        }
+        });
+    };
+
+    const renderEventDetail = (event, id) => {
 
         const attr = ATTRIBUTE_MAP[event.attribute] || { label: event.attribute };
         const type = TYPE_MAP[event.type] || { label: event.type };
         const cd = Utils.getCountdown(event.deadline);
         const isOrganizerView = Auth.current() && Auth.current().id === event.organizerId;
-        const regCount = DataStore.getRegistrationsByEvent(id).length;
+        const regCount = event.__shared ? 0 : Math.max(DataStore.getRegistrationsByEvent(id).length, event.__remoteCount || 0);
         const cover = coverParts(event);
         const relatedEvents = (!event.__shared && event.seriesId)
             ? DataStore.getEvents().filter(e => e.seriesId === event.seriesId && e.id !== event.id)
@@ -400,7 +434,11 @@ const Pages = (() => {
                 <div class="detail-cover"${cover.style}>${cover.inner}</div>
                 <div class="detail-info">
                     <h1 class="detail-title">${Utils.escapeHtml(event.theme)}</h1>
-                    ${event.__shared ? '<div class="share-banner">该页面由分享链接打开，展示的是活动信息快照，报名数据不会同步给主办。</div>' : ''}
+                    ${event.__shared
+                        ? '<div class="share-banner">该页面由分享链接打开，展示的是活动信息快照，报名数据不会同步给主办。</div>'
+                        : event.__fromShare
+                        ? '<div class="share-banner">该活动来自云端，报名数据会实时同步给主办。</div>'
+                        : ''}
                     <div class="detail-badges">
                         <span class="badge ${attr.className}">${attr.label}</span>
                         <span class="badge ${type.className}">${type.label}</span>
@@ -464,7 +502,7 @@ const Pages = (() => {
                 <button class="tab-btn active" data-tab="info">活动信息</button>
                 <button class="tab-btn" data-tab="packages">套餐详情</button>
                 <button class="tab-btn" data-tab="materials">物料门槛</button>
-                ${Auth.isLoggedIn() && !event.__shared ? `<button class="tab-btn" data-tab="verify">我的审核</button>` : ''}
+                ${Auth.isLoggedIn() && !event.__shared && !event.__fromShare ? `<button class="tab-btn" data-tab="verify">我的审核</button>` : ''}
             </div>
 
             <div id="tab-content">
@@ -526,7 +564,7 @@ const Pages = (() => {
                     }
                 </div>
 
-                ${Auth.isLoggedIn() && !event.__shared ? `
+                ${Auth.isLoggedIn() && !event.__shared && !event.__fromShare ? `
                 <div class="tab-panel hidden" data-panel="verify">
                     ${renderVerifyPanel(id, event)}
                 </div>
@@ -1070,11 +1108,13 @@ const Pages = (() => {
         try {
             if (window._editingId) {
                 const updated = DataStore.updateEvent(window._editingId, payload);
+                if (cloudEnabled()) Remote.publishEvent(updated);
                 Utils.toast('生咖信息已更新', 'success');
                 location.hash = `#/event/${updated.id}`;
             } else {
                 const user = Auth.current();
                 const newEvent = DataStore.createEvent({ ...payload, organizerId: user.id });
+                if (cloudEnabled()) Remote.publishEvent(newEvent);
                 Utils.toast('生咖创建成功', 'success');
                 location.hash = `#/event/${newEvent.id}`;
             }
@@ -1092,12 +1132,23 @@ const Pages = (() => {
             return;
         }
 
-        const event = DataStore.getEventById(eventId);
-        if (!event) { Utils.toast('活动不存在', 'error'); return; }
+        const local = DataStore.getEventById(eventId);
+        if (local) { renderRegisterForm(local, eventId); return; }
+
+        document.getElementById('app').innerHTML = `
+            <div class="empty-state"><p>正在加载活动信息…</p></div>`;
+        resolveEvent(eventId).then(res => {
+            if (!res) { Utils.toast('活动不存在', 'error'); return; }
+            renderRegisterForm(res.event, eventId);
+        });
+    };
+
+    const renderRegisterForm = (event, eventId) => {
         if (!DataStore.isBeforeDeadline(event)) {
             Utils.toast('报名已截止', 'error');
             return;
         }
+        window._regEvent = event;
 
         let myReg = DataStore.getUserRegistrations(Auth.current().id).find(r => r.eventId === eventId);
 
@@ -1224,20 +1275,27 @@ const Pages = (() => {
         if (!fanId) { Utils.toast('请填写你的 ID/昵称', 'error'); return; }
         if (!packageId) { Utils.toast('请选择一个套餐', 'error'); return; }
 
-        const event = DataStore.getEventById(eventId);
-        const pkg = event.packages.find(p => p.id === packageId);
+        const event = window._regEvent || DataStore.getEventById(eventId);
+        if (!event) { Utils.toast('活动信息已失效，请刷新后重试', 'error'); return; }
+
+        const pkg = (event.packages || []).find(p => p.id === packageId);
+        if (!pkg) { Utils.toast('套餐信息已更新，请重新选择', 'error'); return; }
+
         const total = pkg.price * quantity;
         const user = Auth.current();
+        const isCloud = !!event.__fromShare;
+        const extra = isCloud ? { __event: { ...event } } : {};
 
         let myReg = DataStore.getUserRegistrations(user.id).find(r => r.eventId === eventId);
+        let saved = null;
 
         if (myReg) {
-            DataStore.updateRegistration(myReg.id, {
-                fanId, packageId, packageName: pkg.name, packagePrice: pkg.price, quantity, total
+            saved = DataStore.updateRegistration(myReg.id, {
+                fanId, packageId, packageName: pkg.name, packagePrice: pkg.price, quantity, total, ...extra
             });
             Utils.toast('报名已更新', 'success');
         } else {
-            DataStore.createRegistration({
+            saved = DataStore.createRegistration({
                 userId: user.id,
                 eventId,
                 fanId,
@@ -1245,9 +1303,16 @@ const Pages = (() => {
                 packageName: pkg.name,
                 packagePrice: pkg.price,
                 quantity,
-                total
+                total,
+                ...extra
             });
             Utils.toast('报名成功', 'success');
+        }
+
+        if (isCloud && cloudEnabled() && saved) {
+            Remote.addRegistration(eventId, saved).then(ok => {
+                if (!ok) Utils.toast('同步到主办失败，请检查网络后重新提交', 'error');
+            });
         }
 
         setTimeout(() => { location.hash = `#/event/${eventId}`; }, 600);
@@ -1259,6 +1324,7 @@ const Pages = (() => {
             const reg = DataStore.getUserRegistrations(user.id).find(r => r.eventId === eventId);
             if (reg) {
                 DataStore.deleteRegistration(reg.id);
+                if (cloudEnabled()) Remote.deleteRegistration(reg.id);
                 Utils.toast('已取消报名', 'success');
                 setTimeout(() => { location.hash = `#/event/${eventId}`; }, 500);
             }
@@ -1266,6 +1332,18 @@ const Pages = (() => {
     };
 
     /* -------- 主办方管理页 -------- */
+    const cloudRegCache = {};
+
+    /* 本地报名 + 云端报名合并（同 id 以本地为准） */
+    const getAllRegs = (eventId) => {
+        const local = DataStore.getRegistrationsByEvent(eventId);
+        const cloud = cloudRegCache[eventId] || [];
+        if (cloud.length === 0) return local;
+        const map = new Map(local.map(r => [r.id, r]));
+        cloud.forEach(r => { if (!map.has(r.id)) map.set(r.id, r); });
+        return [...map.values()].sort((a, b) => a.createdAt - b.createdAt);
+    };
+
     const manageEvent = (eventId) => {
         const event = DataStore.getEventById(eventId);
         if (!event) { Utils.toast('活动不存在', 'error'); return; }
@@ -1275,68 +1353,84 @@ const Pages = (() => {
             return;
         }
 
-        const registrations = DataStore.getRegistrationsByEvent(eventId);
         const verifications = DataStore.getVerificationsByEvent(eventId);
-        const totalRevenue = registrations.reduce((sum, r) => sum + r.total, 0);
-        const pendingCount = verifications.filter(v => v.status === 'pending').length;
 
-        document.getElementById('app').innerHTML = `
-            <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 24px; flex-wrap: wrap; gap:12px;">
-                <div>
-                    <div class="section-title" style="margin-bottom: 0;">数调管理</div>
-                    <div style="font-size: 15px; color: var(--color-ink-soft); margin-top: 4px;">${Utils.escapeHtml(event.theme)}</div>
-                </div>
-                <div style="display:flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-primary btn-sm" onclick="shareEvent('${eventId}')">分享数调</button>
-                    <button class="btn btn-outline btn-sm" onclick="exportRegistrations('${eventId}', 'xlsx')">导出 Excel</button>
-                    <button class="btn btn-outline btn-sm" onclick="exportRegistrations('${eventId}', 'txt')">导出 TXT</button>
-                    <button class="btn btn-outline btn-sm" onclick="exportRegistrations('${eventId}', 'pdf')">导出 PDF</button>
-                    <button class="btn btn-secondary btn-sm" onclick="location.hash='#/event/${eventId}'">查看活动</button>
-                </div>
-            </div>
+        const paint = () => {
+            const registrations = getAllRegs(eventId);
+            const totalRevenue = registrations.reduce((sum, r) => sum + r.total, 0);
+            const pendingCount = verifications.filter(v => v.status === 'pending').length;
+            const cloudCount = (cloudRegCache[eventId] || []).length;
 
-            <div class="stats-row">
-                <div class="stat-card">
-                    <div class="stat-value">${registrations.length}</div>
-                    <div class="stat-label">报名人数</div>
+            document.getElementById('app').innerHTML = `
+                <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 24px; flex-wrap: wrap; gap:12px;">
+                    <div>
+                        <div class="section-title" style="margin-bottom: 0;">数调管理</div>
+                        <div style="font-size: 15px; color: var(--color-ink-soft); margin-top: 4px;">${Utils.escapeHtml(event.theme)}</div>
+                    </div>
+                    <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-primary btn-sm" onclick="shareEvent('${eventId}')">分享数调</button>
+                        ${cloudEnabled() ? `<button class="btn btn-outline btn-sm" onclick="refreshCloudRegs('${eventId}')">刷新报名</button>` : ''}
+                        <button class="btn btn-outline btn-sm" onclick="exportRegistrations('${eventId}', 'xlsx')">导出 Excel</button>
+                        <button class="btn btn-outline btn-sm" onclick="exportRegistrations('${eventId}', 'txt')">导出 TXT</button>
+                        <button class="btn btn-outline btn-sm" onclick="exportRegistrations('${eventId}', 'pdf')">导出 PDF</button>
+                        <button class="btn btn-secondary btn-sm" onclick="location.hash='#/event/${eventId}'">查看活动</button>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">¥${totalRevenue}</div>
-                    <div class="stat-label">预计营收</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${registrations.reduce((s, r) => s + r.quantity, 0)}</div>
-                    <div class="stat-label">套餐份数</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${pendingCount}</div>
-                    <div class="stat-label">待审核物料</div>
-                </div>
-            </div>
 
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="regs">报名名单</button>
-                <button class="tab-btn" data-tab="verify">物料审核</button>
-            </div>
+                ${cloudCount > 0 ? `<div class="share-banner">云端已有 ${cloudCount} 条报名记录，其他设备提交的报名会自动合并到下面的名单。</div>` : ''}
 
-            <div id="tab-content">
-                <div class="tab-panel" data-panel="regs">
-                    ${renderRegistrationList(registrations, event)}
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-value">${registrations.length}</div>
+                        <div class="stat-label">报名人数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">¥${totalRevenue}</div>
+                        <div class="stat-label">预计营收</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${registrations.reduce((s, r) => s + r.quantity, 0)}</div>
+                        <div class="stat-label">套餐份数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${pendingCount}</div>
+                        <div class="stat-label">待审核物料</div>
+                    </div>
                 </div>
-                <div class="tab-panel hidden" data-panel="verify">
-                    ${renderVerificationList(verifications, event)}
-                </div>
-            </div>
-        `;
 
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-                document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`).classList.remove('hidden');
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="regs">报名名单</button>
+                    <button class="tab-btn" data-tab="verify">物料审核</button>
+                </div>
+
+                <div id="tab-content">
+                    <div class="tab-panel" data-panel="regs">
+                        ${renderRegistrationList(registrations, event)}
+                    </div>
+                    <div class="tab-panel hidden" data-panel="verify">
+                        ${renderVerificationList(verifications, event)}
+                    </div>
+                </div>
+            `;
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+                    document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`).classList.remove('hidden');
+                });
             });
-        });
+        };
+
+        paint();
+
+        if (cloudEnabled()) {
+            Remote.listRegistrations(eventId).then(list => {
+                cloudRegCache[eventId] = list || [];
+                if (cloudRegCache[eventId].length > 0) paint();
+            }).catch(e => console.warn('拉取云端报名失败：', e));
+        }
     };
 
     const renderRegistrationList = (registrations, event) => {
@@ -1512,7 +1606,7 @@ const Pages = (() => {
             </div>`;
         }
         return regs.map(r => {
-            const event = DataStore.getEventById(r.eventId);
+            const event = DataStore.getEventById(r.eventId) || r.__event;
             if (!event) return '';
             const cd = Utils.getCountdown(event.deadline);
             const cover = coverThumb(event);
@@ -1532,7 +1626,7 @@ const Pages = (() => {
         }).join('');
     };
 
-    return { home, login, register, eventDetail, createEvent, editEvent, registerEvent, manageEvent, myPage, 
+    return { home, login, register, eventDetail, createEvent, editEvent, registerEvent, manageEvent, myPage, getAllRegs,
         selectRole, handleLogin, handleRegister, selectPackage, changeQty, 
         submitRegistration, cancelRegistration, addDynamicItem, removeDynamicItem, submitCreateEvent,
         coverGenInner };
